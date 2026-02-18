@@ -136,7 +136,7 @@ def RunAlgorithm():
     #Please note any theoretical result in the paper will not be affected as long as the base is still a constant number.
     base = 5.5
     #The number of all tau's
-    max_i = int(math.log(global_sensitivity,base))
+    max_i = int(math.log(global_sensitivity,base))+1
     if max_i<=1:
         max_i+=1
     #Used to store the results

@@ -41,7 +41,7 @@ def RunAlgorithm():
     global global_sensitivity
     global beta
     base = 5.5
-    max_i = int(math.log(global_sensitivity,base))
+    max_i = int(math.log(global_sensitivity,base))+1
     if max_i<=1:
         max_i+=1
     max_res1 = -10000000
