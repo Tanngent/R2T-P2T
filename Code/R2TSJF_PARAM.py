@@ -1,10 +1,6 @@
 # -*- coding: utf-8 -*-
-import getopt
 import math
-import sys
 import random
-import time
-
 
 
 def ReadInput(input_file_path):

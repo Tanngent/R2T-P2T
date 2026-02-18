@@ -1,17 +1,7 @@
 # -*- coding: utf-8 -*-
-import getopt
 import math
-import sys
 import random
-import cplex
-import numpy as np
-import time
-import gc
-import multiprocessing
-from multiprocessing.sharedctypes import Value
-from ctypes import c_double
-manager = multiprocessing.Manager()
-gc.enable()
+
 
 def LapNoise(sensitivity, epsilon):
     scale = sensitivity / epsilon
