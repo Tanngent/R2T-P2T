@@ -55,13 +55,20 @@ def LP(size_dic, tau):
 
 
 
-def runR2T(input_file_path = "../Information/TPCH/Q18_0.txt", global_sensitivity = 5000, utility = 1000, beta = 0.1):
-    base = 5.5
-    epsilon = 4 * math.log(global_sensitivity, base) * math.log(math.log(global_sensitivity, base) / beta) * global_sensitivity / utility
+def runR2T(input_file_path = "../Information/TPCH/Q18_0.txt", global_sensitivity = 5000, utility = 150000, beta = 0.01):
+    # base = 5.5
+    # epsilon = 4 * math.log(global_sensitivity) * math.log(math.log(global_sensitivity) / beta) * global_sensitivity / utility
+    epsilon = 0.67
     size_dic, real_query_result = ReadInput(input_file_path)
     res = RunAlgorithm(size_dic, global_sensitivity, epsilon, beta)
-    print(res, real_query_result - res, epsilon)
+    # print(res, real_query_result - res, epsilon)
     return res, real_query_result - res, epsilon
 
 if __name__ == "__main__":
-	runR2T()
+    times = 10
+    err = 0
+    for t in range(times):
+        _, err, _ = runR2T()
+        err += abs(err)
+    
+    print("average error:", err/times)
