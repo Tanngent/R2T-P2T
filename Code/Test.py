@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import math
 import random
-
+import numpy as np
 
 def LapNoise(sensitivity, epsilon):
     scale = sensitivity / epsilon
@@ -60,6 +60,112 @@ def runP4T(inp = "../Information/TPCH/Q18_0.txt", global_sens = 50000, utility =
     clipped_query = sum([min(v, tau_q) for k, v in size_dic.items()])
     release = clipped_query + LapNoise(tau_q, eps_q)
     # print(f"#bins={bins} utility={utility} release={release} diff={real_query_result - release} eps={eps_h + eps_q} truncation= {tau_q}")
+    return release, abs(real_query_result - release), eps_h + eps_q, tau_q
+
+def rcond_y_given_x_lap_paper(x, eps1, eps2, size=1):
+    """
+    Sample the second noise V2 = y given the first noise x and privacy levels eps1 < eps2.
+    """
+    assert eps2 > eps1 > 0, "Require eps2 > eps1 > 0"
+    
+    p1 = (eps1 / eps2) * np.exp(-(eps2 - eps1) * abs(x))
+    p2 = (eps2 - eps1) / (2 * eps2)
+    p3 = (eps1 + eps2) / (2 * eps2) * (1 - np.exp(-(eps2 - eps1) * abs(x)))
+    p4 = (eps2 - eps1) / (2 * eps2) * np.exp(-(eps2 - eps1) * abs(x))
+
+    # print(p1,p2,p3,p4)
+    samples = []
+
+    for _ in range(size):
+        r = np.random.rand()
+        # Case 1
+        if r < p1:
+            # print('case1', x)
+            y = x
+        
+        # Case 2
+        elif r < p1 + p2:
+            z = np.random.exponential(scale=1/(eps1+eps2)) #* (eps1+eps2)
+            z = -z  # z <= 0
+            # print('case2', np.sign(x) * z)
+            y = np.sign(x) * z
+        
+        # Case 3
+        elif r < p1 + p2 + p3:
+            z = np.random.exponential(scale=1/(eps2 - eps1)) #* ((eps2 - eps1))
+            # truncate to [0, |x|]
+            z = min(z, abs(x))
+            # print('case3', np.sign(x) * z)
+            y = np.sign(x) * z
+        
+        # Case 4
+        else:
+            z = np.random.exponential(scale=1/(eps1+eps2)) #* (eps1+eps2)
+            # shift to >= |x|
+            z = z + abs(x)
+            # print('case4', np.sign(x) * z)
+            y = np.sign(x) * z
+        samples.append(y)
+    return samples
+
+def runP4TPrivRelax(inp = "../Information/TPCH/Q18_0.txt", global_sens = 5000, bins = 10, alpha = 10, beta = 0.1, eps_max = 20, kappa = 2):
+    # starting historgram parameters
+    eps_h = eps_max / math.pow(kappa, math.ceil(math.log(eps_max, kappa)))
+    beta_h = beta / (2*bins)
+
+    # starting query parameters
+    eps_q = eps_max + 1
+    beta_q = beta / 2
+
+    # calculate real results and distrubution
+    real_query_result = 0
+    size_dic = {}
+    input_file = open(inp,'r')
+    for line in input_file.readlines():
+        elements = line.split()
+        value = float(elements[0])
+        entity = int(elements[1])
+        real_query_result += value
+        if entity in size_dic.keys():
+            size_dic[entity] += value
+        else:
+            size_dic[entity] = value
+    
+    # calcualte unoised histogram
+    unoised_hist = {}
+    for i in range(bins):
+        unoised_hist[int(global_sens / bins * (i+1))] = 0
+    for k, v in size_dic.items():
+        v_bin = int(math.ceil(v / (global_sens / bins)) * (global_sens / bins))
+        unoised_hist[v_bin] += 1
+    print(unoised_hist)
+
+    # calcualte starting noised histogram
+    noised_hist = {k: max(0, v + LapNoise(1, eps_h) + 1/eps_h*math.log(bins/2/beta_h)) for k, v in unoised_hist.items()}
+
+    # finding suitable eps_h
+    while True:
+        print(eps_h, eps_q)
+        for i in range(bins):
+            tau = int(global_sens / bins * (i+1)) # for each tau
+            bias = sum([max(k - tau, 0) * v for k, v in noised_hist.items()])
+            t_tau = alpha - bias # leftover budget
+            if t_tau > 0:
+                print(tau / t_tau * math.log(1 / beta_q))
+                if eps_q > tau / t_tau * math.log(1 / beta_q): # find min eps_q
+                    eps_q = tau / t_tau * math.log(1 / beta_q)
+                    tau_q = tau
+        print(noised_hist)
+        if eps_h + eps_q < eps_max:
+            break # found suitable combination
+        if eps_h > eps_max:
+            raise  RuntimeError("no answer found")
+        noised_hist = {k: unoised_hist[k] + rcond_y_given_x_lap_paper(v - unoised_hist[k], eps_h, eps_h * kappa)[0] for k, v in noised_hist.items()}
+        eps_h = eps_h * kappa
+        
+    clipped_query = sum([min(v, tau_q) for k, v in size_dic.items()])
+    release = clipped_query + LapNoise(tau_q, eps_q)
+    print(f"#bins={bins} alpha={alpha} release={release} diff={real_query_result - release} eps={eps_h + eps_q} truncation={tau_q}")
     return release, abs(real_query_result - release), eps_h + eps_q, tau_q
 
 if __name__ == "__main__":
