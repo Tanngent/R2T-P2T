@@ -79,14 +79,14 @@ def CopyTables():
 		element_file_path = data_path + "../../../Temp/" + element.lower() + dataset + ".csv"
 
 		element_file = open(element_file_path, 'r')
-		cur.copy_from(element_file, element, sep='|')
+		cur.copy_from(element_file, element.lower(), sep='|')
 
 		os.remove(element_file_path)
 
 	ids_file_path = data_path + "../../../Temp/ids" + dataset + ".csv"
 
 	ids_file = open(ids_file_path, 'r')
-	cur.copy_from(ids_file, "IDS", sep='|')
+	cur.copy_from(ids_file, "ids", sep='|')
 
 	os.remove(ids_file_path)
 

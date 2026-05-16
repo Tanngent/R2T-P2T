@@ -2,6 +2,9 @@
 import math
 import random
 import numpy as np
+from R2T_PARAM import runR2T
+from R2TSJF_PARAM import runR2TSJF
+from P4T import runP4TPrivRelax
 
 def LapNoise(sensitivity, epsilon):
     scale = sensitivity / epsilon
@@ -16,7 +19,7 @@ def R2T_Translate(global_sens, alpha, beta):
     # print(f"R2T_Translate: eps={eps}")
     return eps
 
-def runP4T(inp = "../Information/TPCH/Q18_0.txt", global_sens = 50000, utility = 100000, bins = 10, beta = 0.1, eps_h = 1):
+def runP4TSJF(inp = "../Information/TPCH/Q18_0.txt", global_sens = 50000, utility = 100000, bins = 10, beta = 0.1, eps_h = 1):
     eps_q = 10000
     beta_h = beta / (2*bins)
     beta_q = beta / 2
@@ -108,7 +111,7 @@ def rcond_y_given_x_lap_paper(x, eps1, eps2, size=1):
         samples.append(y)
     return samples
 
-def runP4TPrivRelax(inp = "../Information/TPCH/Q18_0.txt", global_sens = 5000, bins = 10, alpha = 10, beta = 0.1, eps_max = 20, kappa = 2):
+def runP4TSJFPrivRelax(inp = "../Information/TPCH/Q18_0.txt", global_sens = 5000, bins = 10, alpha = 10, beta = 0.1, eps_max = 20, kappa = 2):
     # starting historgram parameters
     eps_h = eps_max / math.pow(kappa, math.ceil(math.log(eps_max, kappa)))
     beta_h = beta / (2*bins)
@@ -138,24 +141,24 @@ def runP4TPrivRelax(inp = "../Information/TPCH/Q18_0.txt", global_sens = 5000, b
     for k, v in size_dic.items():
         v_bin = int(math.ceil(v / (global_sens / bins)) * (global_sens / bins))
         unoised_hist[v_bin] += 1
-    print(unoised_hist)
+    #print(unoised_hist)
 
     # calcualte starting noised histogram
     noised_hist = {k: max(0, v + LapNoise(1, eps_h) + 1/eps_h*math.log(bins/2/beta_h)) for k, v in unoised_hist.items()}
 
     # finding suitable eps_h
     while True:
-        print(eps_h, eps_q)
+        #print(eps_h, eps_q)
         for i in range(bins):
             tau = int(global_sens / bins * (i+1)) # for each tau
             bias = sum([max(k - tau, 0) * v for k, v in noised_hist.items()])
             t_tau = alpha - bias # leftover budget
             if t_tau > 0:
-                print(tau / t_tau * math.log(1 / beta_q))
+                #print(tau / t_tau * math.log(1 / beta_q))
                 if eps_q > tau / t_tau * math.log(1 / beta_q): # find min eps_q
                     eps_q = tau / t_tau * math.log(1 / beta_q)
                     tau_q = tau
-        print(noised_hist)
+        #print(noised_hist)
         if eps_h + eps_q < eps_max:
             break # found suitable combination
         if eps_h > eps_max:
@@ -165,10 +168,12 @@ def runP4TPrivRelax(inp = "../Information/TPCH/Q18_0.txt", global_sens = 5000, b
         
     clipped_query = sum([min(v, tau_q) for k, v in size_dic.items()])
     release = clipped_query + LapNoise(tau_q, eps_q)
-    print(f"#bins={bins} alpha={alpha} release={release} diff={real_query_result - release} eps={eps_h + eps_q} truncation={tau_q}")
+    #print(f"#bins={bins} alpha={alpha} release={release} diff={real_query_result - release} eps={eps_h + eps_q} truncation={tau_q}")
+    print(real_query_result - release, eps_h + eps_q)
     return release, abs(real_query_result - release), eps_h + eps_q, tau_q
 
 if __name__ == "__main__":
+    """
     bins = [10, 20, 100, 500, 5000, 50000, 500000, 5000000, 50000000]
     # bins=[10]
     
@@ -201,3 +206,21 @@ if __name__ == "__main__":
         R2T_results.append(eps)
     avg_R2T_eps = sum(R2T_results) / len(R2T_results)
     print("R2T eps:", avg_R2T_eps)
+    """
+
+    global_sens = 5000
+    alpha = 10000
+    beta = 0.01
+    kappa = 2
+    
+    bins = 20
+    r2t_eps = R2T_Translate(global_sens, alpha, beta)
+
+    print("R2T_SJF")
+    runR2TSJF(global_sensitivity=global_sens, epsilon=r2t_eps, beta=beta)
+    print("R2T")
+    runR2T(global_sensitivity=global_sens, epsilon=r2t_eps, beta=beta)
+    print("P4T_SJF")
+    runP4TSJFPrivRelax(global_sens=global_sens, bins=bins, alpha=alpha, beta=beta, kappa=kappa)
+    print("P4T")
+    runP4TPrivRelax(global_sens=global_sens, bins=bins, alpha=alpha, beta=beta, kappa=kappa)
