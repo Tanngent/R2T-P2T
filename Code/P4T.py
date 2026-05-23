@@ -263,8 +263,10 @@ def runP4TPrivRelax(inp = "../Information/TPCH/Q18_0.txt", global_sens = 5000, b
     #print(unoised_hist)
 
     # calcualte starting noised histogram
-    noised_hist = {k: max(0, v + LapNoise(1, eps_h) + 1/eps_h*math.log(bins/2/beta_h)) for k, v in unoised_hist.items()}
-
+    noise_scale = 2 * sum(unoised_hist) + 1
+    print(noise_scale)
+    noised_hist = {k: max(0, v + LapNoise(noise_scale, eps_h) + noise_scale/eps_h*math.log(bins/2/beta_h)) for k, v in unoised_hist.items()}
+    print(noised_hist)
     # finding suitable eps_h
     while True:
         #print(eps_h, eps_q)
@@ -272,6 +274,7 @@ def runP4TPrivRelax(inp = "../Information/TPCH/Q18_0.txt", global_sens = 5000, b
             tau = int(global_sens / bins * (i+1)) # for each tau
             bias = sum([max(k - tau, 0) * v for k, v in noised_hist.items()])
             t_tau = alpha - bias # leftover budget
+            #print(t_tau)
             if t_tau > 0:
                 #print(tau / t_tau * math.log(1 / beta_q))
                 if eps_q > tau / t_tau * math.log(1 / beta_q): # find min eps_q

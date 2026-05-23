@@ -45,7 +45,9 @@ def runP4TSJF(inp = "../Information/TPCH/Q18_0.txt", global_sens = 50000, utilit
         v_bin = int(math.ceil(v / (global_sens / bins)) * (global_sens / bins))
         unoised_hist[v_bin] += 1
     # print(unoised_hist)
-    noised_hist = {k: max(0, v + LapNoise(1, eps_h) + 1/eps_h*math.log(bins/2/beta_h)) for k, v in unoised_hist.items()}
+    noise_scale = 2 * sum(unoised_hist) + 1
+    print(noise_scale)
+    noised_hist = {k: max(0, v + LapNoise(noise_scale, eps_h) + noise_scale/eps_h*math.log(bins/2/beta_h)) for k, v in unoised_hist.items()}
     # print(noised_hist)
     # errors = []
     for i in range(bins):
@@ -144,7 +146,9 @@ def runP4TSJFPrivRelax(inp = "../Information/TPCH/Q18_0.txt", global_sens = 5000
     #print(unoised_hist)
 
     # calcualte starting noised histogram
-    noised_hist = {k: max(0, v + LapNoise(1, eps_h) + 1/eps_h*math.log(bins/2/beta_h)) for k, v in unoised_hist.items()}
+    noise_scale = 2 * sum(unoised_hist) + 1
+    print(noise_scale)
+    noised_hist = {k: max(0, v + LapNoise(noise_scale, eps_h) + noise_scale/eps_h*math.log(bins/2/beta_h)) for k, v in unoised_hist.items()}
 
     # finding suitable eps_h
     while True:
