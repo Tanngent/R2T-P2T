@@ -61,8 +61,8 @@ def runR2TSJF(input_file_path = "../Information/TPCH/Q18_0.txt", global_sensitiv
     size_dic, real_query_result = ReadInput(input_file_path)
     res = RunAlgorithm(size_dic, global_sensitivity, epsilon, beta)
     # print(res, real_query_result - res, epsilon)
-    print(real_query_result - res, epsilon)
-    return res, real_query_result - res, epsilon
+    print(abs(real_query_result - res), epsilon)
+    return res, abs(real_query_result - res), epsilon
 
 if __name__ == "__main__":
     times = 10

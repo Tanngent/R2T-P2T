@@ -45,7 +45,7 @@ def runP4TSJF(inp = "../Information/TPCH/Q18_0.txt", global_sens = 50000, utilit
         v_bin = int(math.ceil(v / (global_sens / bins)) * (global_sens / bins))
         unoised_hist[v_bin] += 1
     # print(unoised_hist)
-    noise_scale = 2 * sum(unoised_hist) + 1
+    noise_scale = 1
     print(noise_scale)
     noised_hist = {k: max(0, v + LapNoise(noise_scale, eps_h) + noise_scale/eps_h*math.log(bins/2/beta_h)) for k, v in unoised_hist.items()}
     # print(noised_hist)
@@ -146,9 +146,10 @@ def runP4TSJFPrivRelax(inp = "../Information/TPCH/Q18_0.txt", global_sens = 5000
     #print(unoised_hist)
 
     # calcualte starting noised histogram
-    noise_scale = 2 * sum(unoised_hist) + 1
-    print(noise_scale)
+    noise_scale = 1
+    #print(noise_scale)
     noised_hist = {k: max(0, v + LapNoise(noise_scale, eps_h) + noise_scale/eps_h*math.log(bins/2/beta_h)) for k, v in unoised_hist.items()}
+    #print(noised_hist)
 
     # finding suitable eps_h
     while True:
@@ -173,7 +174,7 @@ def runP4TSJFPrivRelax(inp = "../Information/TPCH/Q18_0.txt", global_sens = 5000
     clipped_query = sum([min(v, tau_q) for k, v in size_dic.items()])
     release = clipped_query + LapNoise(tau_q, eps_q)
     #print(f"#bins={bins} alpha={alpha} release={release} diff={real_query_result - release} eps={eps_h + eps_q} truncation={tau_q}")
-    print(real_query_result - release, eps_h + eps_q)
+    print(abs(real_query_result - release), eps_h + eps_q, tau_q, t_tau)
     return release, abs(real_query_result - release), eps_h + eps_q, tau_q
 
 if __name__ == "__main__":
@@ -213,18 +214,33 @@ if __name__ == "__main__":
     """
 
     global_sens = 5000
-    alpha = 10000
+    alpha = 250
     beta = 0.01
     kappa = 2
     
     bins = 20
     r2t_eps = R2T_Translate(global_sens, alpha, beta)
 
-    print("R2T_SJF")
-    runR2TSJF(global_sensitivity=global_sens, epsilon=r2t_eps, beta=beta)
-    print("R2T")
-    runR2T(global_sensitivity=global_sens, epsilon=r2t_eps, beta=beta)
-    print("P4T_SJF")
-    runP4TSJFPrivRelax(global_sens=global_sens, bins=bins, alpha=alpha, beta=beta, kappa=kappa)
-    print("P4T")
-    runP4TPrivRelax(global_sens=global_sens, bins=bins, alpha=alpha, beta=beta, kappa=kappa)
+    r2t_diff_total = 0
+    r2t_eps_total = 0
+    p4t_diff_total = 0
+    p4t_eps_total = 0
+    naive_diff_total = 0
+    naive_eps_total = 0
+    for _ in range(10):
+        print("R2T_SJF")
+        _, diff, eps = runR2TSJF(global_sensitivity=global_sens, epsilon=r2t_eps, beta=beta)
+        r2t_diff_total += diff
+        r2t_eps_total += eps
+        print("P4T_SJF")
+        _, diff, eps, _ = runP4TSJFPrivRelax(global_sens=global_sens, bins=bins, alpha=alpha, beta=beta, kappa=kappa)
+        p4t_diff_total += diff
+        p4t_eps_total += eps
+        print("Naive")
+        eps = global_sens / alpha * math.log(1 / beta)
+        diff = abs(LapNoise(global_sens, eps))
+        naive_diff_total += diff
+        naive_eps_total += eps
+    print(r2t_diff_total / 10, r2t_eps_total / 10)
+    print(p4t_diff_total / 10, p4t_eps_total / 10)
+    print(naive_diff_total / 10, naive_eps_total / 10)

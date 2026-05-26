@@ -13,7 +13,8 @@ def LapNoise(sensitivity, epsilon):
 
 def testHistDiff(inp = "../Information/TPCH/Q18_0.txt", global_sens = 5000, bins = 10, alpha = 10, beta = 0.1, eps_max = 20, kappa = 2, override_size_dic = None):
     # starting historgram parameters
-    eps_h = eps_max / math.pow(kappa, math.ceil(math.log(eps_max, kappa)))
+    #eps_h = eps_max / math.pow(kappa, math.ceil(math.log(eps_max, kappa)))
+    eps_h = 1
     beta_h = beta / (2*bins)
 
     # starting query parameters
@@ -70,12 +71,15 @@ if __name__ == "__main__":
 
     global_sens = 50000
     s = np.random.beta(4, 4, 10000)
-    #s = np.random.beta(8, 2, 10000)
-    #s = np.random.beta(2, 8, 10000)
-    #s = np.random.rand(10000)
+    s = np.random.beta(8, 2, 10000)
+    s = np.random.beta(2, 8, 10000)
+    s = np.random.rand(10000)
     override_size_dic = {i: max(1, min(v*global_sens, global_sens)) for i, v in enumerate(s)}
     plt.hist(override_size_dic.values(), bins=100)
-    plt.savefig(f'dist.png')
+    plt.title("Uniform Sample")
+    plt.xlabel("value")
+    plt.ylabel("count")
+    plt.savefig(f'dist_uniform.png')
     plt.clf()
 
     bins = [10, 20, 30, 40, 50]
@@ -87,6 +91,9 @@ if __name__ == "__main__":
         #if bin == 100:
             #plt.plot(t, r, label ='real')
         #plt.plot(t, u, '-.', label ='unoised')
-        plt.plot(t, [i - j for i, j in zip(n, r)], '-.', label =f'noised_{bin}')
+        plt.plot(t, [i - j for i, j in zip(n, r)], '-.', label =f'noised_{bin}_bins')
     plt.legend(ncol=3)
-    plt.savefig(f'my_plot_normal.png')
+    plt.title("Bias Overestimate Uniform")
+    plt.xlabel("truncation parameter")
+    plt.ylabel("overestimate")
+    plt.savefig(f'overestimate_uniform.png')
